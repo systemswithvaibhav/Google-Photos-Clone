@@ -1,0 +1,48 @@
+package project.backend.services;
+
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
+import org.springframework.transaction.annotation.*;
+
+import project.backend.domain.User;
+import project.backend.dto.UserResponse;
+import project.backend.exceptions.UnauthorizedException;
+import project.backend.repository.UserRepository;
+
+@Service
+@Transactional(readOnly = true)
+public class UserService {
+    private final UserRepository userRepository;
+
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public UserResponse getUserResponseByEmail(String email) {
+        return toUserResponse(getByEmail(email));
+    }
+
+    public User getByEmail(String email) {
+        return userRepository.findByEmail(email.toLowerCase())
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
+    }
+
+    public Optional<String> findEmailById(UUID userId) {
+        return userRepository.findById(userId).map(User::getEmail);
+    }
+
+    public boolean existsById(UUID userId) {
+        return userRepository.existsById(userId);
+    }
+
+    public UserResponse toUserResponse(User user) {
+        return new UserResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getDisplayName(), null
+        );
+    }
+}
