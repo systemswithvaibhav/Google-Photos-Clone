@@ -1,22 +1,22 @@
 "use client";
 
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/ui/mode-toggle";
-import { useLogout } from "@/hooks/use-auth";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Spinner } from "@/components/ui/spinner";
+import { useAuth } from "@/hooks/use-auth";
 
-export default function Home() {
-  const logoutMutation = useLogout();
+export default function HomePage() {
+  const router = useRouter();
+  const { isReady, isLoggedIn } = useAuth();
+
+  useEffect(() => {
+    if (!isReady) return;
+    router.replace(isLoggedIn ? "/photos" : "/login");
+  }, [isReady, isLoggedIn, router]);
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-zinc-50 font-sans dark:bg-black min-h-screen">
-      <ModeToggle />
-      <Button
-        onClick={() => logoutMutation.mutate()}
-        disabled={logoutMutation.isPending}
-      >
-        {logoutMutation.isPending ? "Logging out..." : "Logout"}
-      </Button>
+    <div className="flex min-h-full items-center justify-center bg-background text-muted-foreground">
+      <Spinner className="size-6" />
     </div>
   );
 }
