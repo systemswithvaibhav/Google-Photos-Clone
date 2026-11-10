@@ -1,21 +1,28 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import type { AuthResponse, User } from "@/lib/api";
 
 /**
  * Stores the logged-in user + tokens.
- * `persist` saves them in localStorage so a page refresh keeps you logged in.
- * `isReady` becomes true after that saved data has been loaded.
+ * persist saves them in localStorage so a page refresh keeps you logged in.
+ * isReady becomes true after that saved data has been loaded.
  */
 type AuthState = {
   accessToken: string | null;
   refreshToken: string | null;
   user: User | null;
   isReady: boolean;
-  setAuth: (auth: AuthResponse) => void;
+  setAuth: (data: AuthResponse) => void;
   clearAuth: () => void;
+  setReady: () => void;
+};
+
+const noopStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -25,11 +32,11 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       user: null,
       isReady: false,
-      setAuth: (auth) =>
+      setAuth: (data: AuthResponse) =>
         set({
-          accessToken: auth.accessToken,
-          refreshToken: auth.refreshToken,
-          user: auth.user,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+          user: data.user,
         }),
       clearAuth: () =>
         set({
@@ -37,18 +44,22 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: null,
           user: null,
         }),
-    }), // <-- yahan `)` missing tha
+      setReady: () => set({ isReady: true }),
+    }),
     {
       name: "gp-auth",
-      // Only save these fields (not isReady)
+      // Noop on the server so persist still hydrates and sets isReady
+      storage: createJSONStorage(() =>
+        typeof window === "undefined" ? noopStorage : localStorage,
+      ),
       partialize: (state) => ({
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         user: state.user,
       }),
-      onRehydrateStorage: () => () => {
-        useAuthStore.setState({ isReady: true });
+      onRehydrateStorage: () => (state) => {
+        state?.setReady();
       },
-    }
-  ) // <-- yahan persist ka `)` missing tha
+    },
+  ),
 );

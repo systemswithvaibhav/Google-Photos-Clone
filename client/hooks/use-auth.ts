@@ -20,3 +20,66 @@ export function useCurrentUser() {
       staleTime: 5 * 60 * 1000,
     });
   }
+
+
+/** Login -> save tokens -> go to /photos */
+export function useLogin() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const setAuth = useAuthStore((state) => state.setAuth);
+
+  return useMutation({
+    mutationFn: (values: LoginFormValues) => api.login(values),
+    onSuccess: (data) => {
+      setAuth(data);
+      queryClient.setQueryData(authKeys.me(), data.user);
+      toast.success(`Welcome back, ${data.user.displayName}`);
+      router.replace("/");
+    },
+  });
+}
+
+
+/** Register -> save tokens -> go to /photos */
+export function useRegister() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const setAuth = useAuthStore((state) => state.setAuth);
+
+  return useMutation({
+    mutationFn: (values: RegisterFormValues) => api.register(values),
+    onSuccess: (data) => {
+      setAuth(data);
+      queryClient.setQueryData(authKeys.me(), data.user);
+      toast.success("Account created successfully");
+      router.replace("/");
+    },
+  });
+}
+
+  /** Logout -> clear tokens -> go to /login */
+export function useLogout() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+
+  return useMutation({
+    mutationFn: () => api.logout(),
+    onSettled: () => {
+      clearAuth();
+      queryClient.removeQueries({ queryKey: authKeys.all });
+      toast.success("Signed out");
+      router.replace("/login");
+    },
+  });
+}
+
+export function useAuth() {
+  const isReady = useAuthStore((state) => state.isReady);
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  return {
+    isReady,
+    isLoggedIn: !!accessToken,
+  };
+}
